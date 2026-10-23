@@ -20,12 +20,7 @@ Panduan lengkap migrasi ke hosting cPanel (subdomain `nandin-kitchen.ciptakaryad
 database MySQL `toranggo_nandin`, Laravel API, Midtrans & SMTP produksi):
 baca **[TUTORIAL-DEPLOY-CPANEL.md](./TUTORIAL-DEPLOY-CPANEL.md)**.
 
-## Akun Demo
 
-| Role   | Email              | Password  |
-|--------|--------------------|-----------|
-| Admin  | admin@nandin.id    | admin123  |
-| Kasir  | kasir@nandin.id    | kasir123  |
 
 Pelanggan dapat **mendaftar sendiri** lewat tombol *Masuk/Daftar* di sisi kanan navbar
 (dilengkapi captcha 5 karakter & tombol intip kata sandi).
