@@ -12,9 +12,9 @@
 // ============================================================
 
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'GANTI_DENGAN_NAMA_DATABASE');
-define('DB_USER', 'GANTI_DENGAN_USER_DATABASE');
-define('DB_PASS', 'GANTI_DENGAN_PASSWORD_DATABASE');
+define('DB_NAME', 'toranggo_nandin');
+define('DB_USER', 'toranggo_nandin');
+define('DB_PASS', 'CKDi@7890');
 
 // (Opsional) Kunci cadangan untuk aksi admin via header X-Admin-Token.
 // Isi dengan teks acak panjang, atau biarkan kosong.

@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useSettings } from '../context/SettingsContext'
 import { useAuth } from '../context/AuthContext'
+import SyncStatus from '../components/admin/SyncStatus'
 
 const MENU = [
   { to: '/admin', label: 'Dashboard', icon: '📊', end: true },
   { to: '/admin/pos', label: 'POS Kasir', icon: '🧾' },
   { to: '/admin/products', label: 'Produk & Kategori', icon: '🍰' },
   { to: '/admin/orders', label: 'Transaksi & Pesanan', icon: '📦' },
+  { to: '/admin/customers', label: 'Pelanggan', icon: '👥' },
   { to: '/admin/stock', label: 'Stok', icon: '🏷️' },
   { to: '/admin/purchases', label: 'Pembelian & Biaya', icon: '🚚' },
   { to: '/admin/reports', label: 'Laporan', icon: '📈' },
@@ -57,6 +59,7 @@ export default function AdminLayout() {
           <button className="icon-btn" onClick={() => setSidebar((v) => !v)} aria-label="Menu">☰</button>
           <h2>{current?.icon} {current?.label || 'Admin'}</h2>
           <div className="admin-user">
+            <SyncStatus />
             <span className="avatar">{user?.name?.[0]?.toUpperCase()}</span>
             <span className="hide-sm">{user?.name}</span>
             <span className="badge badge-caramel">{user?.role}</span>

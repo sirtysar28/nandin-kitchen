@@ -1,5 +1,5 @@
 /* Nandin Kitchen — Service Worker (PWA) */
-const CACHE = 'nandin-v3'
+const CACHE = 'nandin-v5'
 const ASSETS = [
   '/',
   '/index.html',
@@ -39,9 +39,12 @@ self.addEventListener('fetch', (e) => {
   if (req.mode === 'navigate') {
     e.respondWith(
       fetch(req)
-        .then((res) => {
-          const copy = res.clone()
-          caches.open(CACHE).then((c) => c.put('/', copy))
+        .then(async (res) => {
+          try {
+            const copy = res.clone()
+            const c = await caches.open(CACHE)
+            await c.put('/', copy)
+          } catch { /* body sudah terpakai — abaikan, halaman tetap ditampilkan */ }
           return res
         })
         .catch(() =>

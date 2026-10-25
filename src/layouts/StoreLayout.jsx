@@ -5,12 +5,15 @@ import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
 import { waLink, waTarget } from '../utils/wa'
 import AuthModal from '../components/common/AuthModal'
+import BottomNav from '../components/common/BottomNav'
+import ScanPayModal from '../components/common/ScanPayModal'
 
 export default function StoreLayout() {
   const settings = useSettings()
   const { user, isAdmin, logout } = useAuth()
   const cart = useCart()
   const [authOpen, setAuthOpen] = useState(false)
+  const [scanOpen, setScanOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [userMenu, setUserMenu] = useState(false)
   const [installEvt, setInstallEvt] = useState(null)
@@ -141,11 +144,11 @@ export default function StoreLayout() {
         </div>
         <div className="footer-bottom">
           <div className="container footer-bottom-inner">
-            <span>© {new Date().getFullYear()} {settings.storeName}. All rights reserved.</span>
+            <span>© {new Date().getFullYear()} <b>{settings.storeName}</b> — All rights reserved.</span>
             <span>
               Developed by{' '}
               <a href="https://ciptakaryadigital.id" target="_blank" rel="noopener noreferrer" className="dev-link">
-                Cipta Karya Digital Indonesia
+                <b>Cipta Karya Digital Indonesia</b>
               </a>
             </span>
           </div>
@@ -163,6 +166,20 @@ export default function StoreLayout() {
       </a>
 
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
+
+      {/* Navigasi bawah 5 ikon (khusus mobile) — tombol tengah: scan pembayaran */}
+      <BottomNav
+        onOpenAuth={() => setAuthOpen(true)}
+        onOpenScan={() => setScanOpen(true)}
+      />
+      <ScanPayModal
+        open={scanOpen}
+        onClose={() => setScanOpen(false)}
+        onNeedLogin={() => {
+          setScanOpen(false)
+          setAuthOpen(true)
+        }}
+      />
     </div>
   )
 }

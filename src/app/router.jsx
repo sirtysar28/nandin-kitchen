@@ -9,12 +9,15 @@ import Cart from '../pages/store/Cart'
 import Checkout from '../pages/store/Checkout'
 import MyOrders from '../pages/store/MyOrders'
 import About from '../pages/store/About'
+import ForgotPassword from '../pages/store/ForgotPassword'
+import ResetPassword from '../pages/store/ResetPassword'
 
 import AdminLogin from '../pages/admin/AdminLogin'
 import Dashboard from '../pages/admin/Dashboard'
 import POS from '../pages/admin/POS'
 import ProductsAdmin from '../pages/admin/ProductsAdmin'
 import OrdersAdmin from '../pages/admin/OrdersAdmin'
+import CustomersAdmin from '../pages/admin/CustomersAdmin'
 import StockAdmin from '../pages/admin/StockAdmin'
 import PurchasesAdmin from '../pages/admin/PurchasesAdmin'
 import ReportsAdmin from '../pages/admin/ReportsAdmin'
@@ -31,6 +34,8 @@ export default function Router() {
         <Route path="/cart" element={<Cart />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/my-orders" element={<MyOrders />} />
+        <Route path="/lupa-sandi" element={<ForgotPassword />} />
+        <Route path="/reset-sandi" element={<ResetPassword />} />
         <Route path="/about" element={<About />} />
       </Route>
 
@@ -41,6 +46,7 @@ export default function Router() {
         <Route path="pos" element={<POS />} />
         <Route path="products" element={<ProductsAdmin />} />
         <Route path="orders" element={<OrdersAdmin />} />
+        <Route path="customers" element={<CustomersAdmin />} />
         <Route path="stock" element={<StockAdmin />} />
         <Route path="purchases" element={<PurchasesAdmin />} />
         <Route path="reports" element={<ReportsAdmin />} />

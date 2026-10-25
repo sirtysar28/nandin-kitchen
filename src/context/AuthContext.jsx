@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, useState } from 'react'
-import { db, serverLogin, serverLogout } from '../services/db'
+import { db, serverLogin, serverLogout, notifyRegistration } from '../services/db'
 
 const Ctx = createContext(null)
 const KEY = 'nandin_auth_v1'
@@ -35,6 +35,7 @@ export function AuthProvider({ children }) {
           return { ok: false, error: 'Email sudah terdaftar, silakan masuk.' }
         const created = db.insert('users', { name, email: emailClean, phone, password, role: 'customer' })
         db.insert('customers', { name, email: emailClean, phone, userId: created.id })
+        notifyRegistration(created)
         const { password: _p, ...safe } = created
         localStorage.setItem(KEY, JSON.stringify(safe))
         setUser(safe)

@@ -88,12 +88,8 @@ export default function AdminLogin() {
           <button className="btn btn-primary w-full btn-lg">Masuk Dashboard</button>
         </form>
 
-        <div className="demo-cred">
-          <b>Akun demo:</b><br />
-          Admin — admin@nandin.id / admin123<br />
-          Kasir — kasir@nandin.id / kasir123
-        </div>
         <div style={{ textAlign: 'center', marginTop: 14 }}>
+          <Link to="/lupa-sandi" className="text-muted" style={{ fontSize: 13.5, display: 'block', marginBottom: 6 }}>🔑 Lupa kata sandi?</Link>
           <Link to="/" className="text-muted" style={{ fontSize: 13.5 }}>← Kembali ke website toko</Link>
         </div>
       </div>

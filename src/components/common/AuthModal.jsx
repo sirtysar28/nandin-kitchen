@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from './Toast'
 import Captcha from './Captcha'
@@ -135,16 +135,18 @@ export default function AuthModal({ open, onClose }) {
         </button>
       </form>
 
-      {tab === 'login' && (
-        <div className="demo-cred">
-          <b>Akun demo:</b> admin@nandin.id / admin123 (Admin) · kasir@nandin.id / kasir123 (Kasir)
-        </div>
-      )}
-      <p className="text-muted mt-3" style={{ fontSize: 13 }}>
+      <p className="text-muted mt-3" style={{ fontSize: 13, textAlign: 'center' }}>
         {tab === 'login'
           ? 'Belum punya akun? Daftar untuk belanja online dan melacak pesananmu.'
           : 'Dengan mendaftar, kamu bisa checkout cepat dan memantau status pesanan.'}
       </p>
+      {tab === 'login' && (
+        <p style={{ textAlign: 'center', margin: 0, fontSize: 13.5 }}>
+          <Link to="/lupa-sandi" onClick={onClose} style={{ fontWeight: 700 }}>
+            🔑 Lupa kata sandi?
+          </Link>
+        </p>
+      )}
     </Modal>
   )
 }

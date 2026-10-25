@@ -144,6 +144,7 @@ const settings = {
   favicon: '/favicon.png',
   waNumber: '6281200000001',
   midtrans: { enabled: true, merchantId: 'G000123456', clientKey: 'SB-Mid-client-DEMO', serverKey: 'SB-Mid-server-DEMO', env: 'sandbox' },
+  qris: '',
   smtp: {
     enabled: false,
     host: 'smtp.gmail.com',

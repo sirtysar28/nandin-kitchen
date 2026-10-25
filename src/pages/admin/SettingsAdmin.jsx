@@ -4,7 +4,7 @@ import { useSettings } from '../../context/SettingsContext'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../components/common/Toast'
 import PasswordInput from '../../components/common/PasswordInput'
-import { db } from '../../services/db'
+import { db, sendEmail, emailTemplate, testMidtrans } from '../../services/db'
 import { fmtDateTime } from '../../utils/format'
 import { waLink, waTarget } from '../../utils/wa'
 import Modal from '../../components/common/Modal'
@@ -37,6 +37,7 @@ export default function SettingsAdmin() {
   const [form, setForm] = useState(() => ({ ...store.db.settings() }))
   const logoRef = useRef()
   const faviconRef = useRef()
+  const qrisRef = useRef()
 
   const setF = (k, v) => setForm((f) => ({ ...f, [k]: v }))
   const setDeep = (k, kk, v) => setForm((f) => ({ ...f, [k]: { ...f[k], [kk]: v } }))
@@ -57,35 +58,49 @@ export default function SettingsAdmin() {
   const [acc, setAcc] = useState({ name: '', email: '', password: '', role: 'kasir' })
   const staff = store.db.list('users').filter((u) => u.role !== 'customer')
 
-  // SMTP: kirim email tes (simulasi mode mock)
+  // SMTP: kirim email tes ASLI via server (PHP → SMTP)
   const [testTo, setTestTo] = useState('')
   const [testing, setTesting] = useState(false)
-  const outbox = [...store.db.list('emails')].reverse().slice(0, 6)
 
   function applyPreset(p) {
     setForm((f) => ({ ...f, smtp: { ...f.smtp, host: p.host, port: p.port, encryption: p.encryption } }))
     toast(`Preset ${p.name} diterapkan`)
   }
 
-  function sendTestEmail() {
+  async function sendTestEmail() {
     const s = form.smtp
     if (!s.host?.trim()) return toast('SMTP host masih kosong.', 'err')
     if (!s.port || Number(s.port) <= 0) return toast('Port SMTP tidak valid.', 'err')
     if (!s.fromEmail?.trim()) return toast('Email pengirim masih kosong.', 'err')
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(testTo)) return toast('Masukkan alamat email tujuan yang valid.', 'err')
     setTesting(true)
-    // Simulasi kirim — pada backend Laravel: endpoint /api/settings/smtp/test → Mail::raw()
-    setTimeout(() => {
-      setTesting(false)
-      db.insert('emails', {
-        to: testTo,
-        subject: `Tes SMTP ${s.fromName || 'Nandin Kitchen'} ✉️`,
-        body: `Ini email percobaan dari ${form.storeName}. Jika Anda menerima email ini, konfigurasi SMTP sudah benar.`,
-        from: `${s.fromName} <${s.fromEmail}>`,
-        status: 'terkirim (simulasi)',
+    // Kirim ASLI melalui server (PHP membaca konfigurasi SMTP dari database)
+    const r = await sendEmail(
+      testTo.trim(),
+      `Tes SMTP ${s.fromName || 'Nandin Kitchen'} ✉️`,
+      emailTemplate({
+        title: 'Email tes berhasil! ✅',
+        bodyHtml: `Ini email percobaan dari <b>${form.storeName}</b>. Jika email ini sampai ke inbox kamu, konfigurasi SMTP sudah benar dan semua notifikasi (registrasi & pembelian) akan terkirim otomatis.`,
       })
-      toast(`Email tes berhasil dikirim ke ${testTo} ✉️`)
-    }, 1300)
+    )
+    setTesting(false)
+    toast(
+      r.ok ? 'Email tes terkirim — cek inbox (dan folder spam).' : `Gagal mengirim: ${r.error || 'cek konfigurasi SMTP'}`,
+      r.ok ? 'ok' : 'err'
+    )
+  }
+
+  // Midtrans: tes koneksi server key
+  const [mtTesting, setMtTesting] = useState(false)
+  const [mtStatus, setMtStatus] = useState(null)
+
+  async function runMidtransTest() {
+    setMtTesting(true)
+    setMtStatus(null)
+    const r = await testMidtrans()
+    setMtTesting(false)
+    setMtStatus(r)
+    toast(r.ok ? 'Midtrans terhubung ✅' : `Midtrans gagal: ${r.error}`, r.ok ? 'ok' : 'err')
   }
 
   function addAccount() {
@@ -174,6 +189,9 @@ export default function SettingsAdmin() {
         {tab === 'midtrans' && (
           <>
             <h3>💳 Midtrans (Payment Gateway)</h3>
+            {!form.midtrans.enabled && (
+              <div className="alert alert-warn">⚠️ Midtrans belum diaktifkan — centang kotak di bawah agar tombol pembayaran Midtrans muncul di checkout pelanggan.</div>
+            )}
             <div className="grid-2">
               <label className="row" style={{ gap: 8, fontWeight: 700, fontSize: 14 }}>
                 <input type="checkbox" checked={!!form.midtrans.enabled} onChange={(e) => setDeep('midtrans', 'enabled', e.target.checked)} />
@@ -189,6 +207,43 @@ export default function SettingsAdmin() {
               <div><label className="label">Merchant ID</label><input className="input" value={form.midtrans.merchantId} onChange={(e) => setDeep('midtrans', 'merchantId', e.target.value)} /></div>
               <div><label className="label">Client Key</label><input className="input" value={form.midtrans.clientKey} onChange={(e) => setDeep('midtrans', 'clientKey', e.target.value)} /></div>
               <div><label className="label">Server Key</label><PasswordInput value={form.midtrans.serverKey || ''} onChange={(v) => setDeep('midtrans', 'serverKey', v)} placeholder="Server key (rahasia)" autoComplete="off" /></div>
+            </div>
+
+            <div className="card mt-2" style={{ background: 'var(--cream)' }}>
+              <div className="row-between" style={{ flexWrap: 'wrap', gap: 10 }}>
+                <div>
+                  <label className="label" style={{ marginBottom: 2 }}>Status Koneksi Midtrans</label>
+                  <div style={{ fontSize: 13.5 }}>
+                    {mtStatus == null ? (
+                      <span className="text-muted">Belum dites — klik tombol untuk memeriksa Server Key langsung ke server Midtrans.</span>
+                    ) : mtStatus.ok ? (
+                      <b className="text-ok">✅ {mtStatus.message || 'Terhubung'}</b>
+                    ) : (
+                      <b className="text-err">❌ {mtStatus.error || 'Gagal'}</b>
+                    )}
+                  </div>
+                </div>
+                <button className="btn btn-outline" onClick={runMidtransTest} disabled={mtTesting}>
+                  {mtTesting ? 'Menguji…' : '🔌 Tes Koneksi'}
+                </button>
+              </div>
+              <p className="text-muted" style={{ fontSize: 12, margin: '8px 0 0' }}>
+                Simpan dulu pengaturan sebelum menekan tombol tes. Pastikan Environment sesuai key (sandbox/production).
+              </p>
+            </div>
+            <div className="upload-box mt-2">
+              <b>📷 QRIS — Scan Pembayaran (Navigasi Bawah Mobile)</b>
+              {form.qris ? (
+                <img src={form.qris} alt="QRIS" style={{ maxHeight: 210, maxWidth: '100%', objectFit: 'contain' }} />
+              ) : (
+                <span className="text-muted">Belum ada gambar QRIS — pelanggan akan melihat placeholder</span>
+              )}
+              <div className="row" style={{ justifyContent: 'center' }}>
+                <button className="btn btn-outline btn-sm" onClick={() => qrisRef.current?.click()}>📤 Upload Gambar QRIS</button>
+                {form.qris && <button className="btn btn-ghost btn-sm" onClick={() => setF('qris', '')}>🗑 Hapus</button>}
+              </div>
+              <input ref={qrisRef} hidden type="file" accept="image/*" onChange={(e) => e.target.files[0] && readFile(e.target.files[0], (d) => setF('qris', d))} />
+              <span className="text-muted" style={{ fontSize: 12.5 }}>Ditampilkan di tombol 📷 (tengah) navigasi bawah bagi pelanggan yang sudah masuk.</span>
             </div>
             <div className="alert alert-warn mt-2">
               Catatan: pada aplikasi produksi, pembayaran harus dikonfirmasi backend melalui webhook Midtrans — bukan hanya halaman sukses di browser.
@@ -266,19 +321,23 @@ export default function SettingsAdmin() {
                 </button>
               </div>
               <div className="alert alert-info mt-2" style={{ marginBottom: 0 }}>
-                Mode demo: email dicatat ke outbox simulasi. Pada backend Laravel, kirim via <code>Mail::send()</code> dengan konfigurasi SMTP ini (host/port/enkripsi/username/password) — jangan pernah mengekspos sandi SMTP ke browser klien.
+                Email dikirim langsung oleh server lewat SMTP di atas (bukan simulasi). Klik <b>Simpan Pengaturan</b> dulu sebelum tes.
+                Gmail: wajib pakai <b>App Password</b> (aktifkan 2FA). Hosting cPanel biasanya lebih lancar pakai email domain sendiri (mail.domainkamu.id, port 465).
               </div>
             </div>
 
-            {outbox.length > 0 && (
+            {store.db.list('emails').length > 0 && (
               <div className="mt-3">
-                <h4>📬 Outbox Terakhir (Simulasi)</h4>
+                <h4>📬 Riwayat Email Terakhir</h4>
                 <div className="stack" style={{ gap: 8 }}>
-                  {outbox.map((m) => (
+                  {[...store.db.list('emails')].reverse().slice(0, 6).map((m) => (
                     <div key={m.id} className="row-between" style={{ borderBottom: '1px solid var(--cream-2)', paddingBottom: 6, fontSize: 13.5 }}>
                       <span>
                         <b>{m.subject}</b>
-                        <div className="text-muted" style={{ fontSize: 12 }}>ke {m.to} · dari {m.from}</div>
+                        <div className="text-muted" style={{ fontSize: 12 }}>
+                          ke {m.to} ·{' '}
+                          <b className={String(m.status).startsWith('terkirim') ? 'text-ok' : 'text-err'}>{m.status}</b>
+                        </div>
                       </span>
                       <span className="text-muted" style={{ fontSize: 12 }}>{fmtDateTime(m.createdAt)}</span>
                     </div>
@@ -327,7 +386,7 @@ export default function SettingsAdmin() {
               </table>
             </div>
             <div className="alert alert-err mt-3">
-              <b>Zona Berbahaya:</b> reset seluruh data demo (produk, pesanan, laporan) ke kondisi awal.
+              <b>Zona Berbahaya:</b> reset seluruh data (produk, pesanan, laporan) ke kondisi awal.
               <button className="btn btn-danger btn-sm" style={{ marginLeft: 10 }} onClick={() => {
                 if (!confirm('Reset SEMUA data aplikasi ke kondisi awal?')) return
                 const pw = prompt('Konfirmasi kata sandi admin untuk reset:')

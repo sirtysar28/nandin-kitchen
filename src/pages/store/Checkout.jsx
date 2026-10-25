@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useSettings } from '../../context/SettingsContext'
 import { useData } from '../../context/DataContext'
 import { useToast } from '../../components/common/Toast'
-import { createOrder, markOrderPaid } from '../../services/db'
+import { createOrder, markOrderPaid, getSnapToken, verifyMidtransPayment } from '../../services/db'
 import { buildOrderMessage, waLink, waTarget } from '../../utils/wa'
 import { rupiah, todayKey } from '../../utils/format'
 import Modal from '../../components/common/Modal'
@@ -100,6 +100,57 @@ export default function Checkout() {
       }
       setMidtransOrder(order.id)
     }
+  }
+
+  // Muat snap.js Midtrans sesuai environment (sandbox/production)
+  function loadSnap(midtrans) {
+    return new Promise((resolve, reject) => {
+      if (window.snap) return resolve()
+      if (document.getElementById('midtrans-snap-script')) {
+        document.getElementById('midtrans-snap-script').addEventListener('load', () => resolve())
+        return
+      }
+      const s = document.createElement('script')
+      s.id = 'midtrans-snap-script'
+      s.src = `${midtrans.env === 'production' ? 'https://app.midtrans.com' : 'https://app.sandbox.midtrans.com'}/snap/snap.js`
+      s.setAttribute('data-client-key', midtrans.clientKey)
+      s.onload = () => resolve()
+      s.onerror = () => reject(new Error('Gagal memuat snap.js Midtrans'))
+      document.body.appendChild(s)
+    })
+  }
+
+  async function payWithMidtrans() {
+    setPaying(true)
+    try {
+      const t = await getSnapToken(midtransOrder)
+      if (!t.ok || !t.token) {
+        toast(`Gagal memulai pembayaran: ${t.error || 'coba lagi'}`, 'err')
+        setPaying(false)
+        return
+      }
+      await loadSnap(settings.midtrans)
+      window.snap.pay(t.token, {
+        onSuccess: () => finishMidtrans('Pembayaran berhasil! Pesananmu sedang diproses ✅'),
+        onPending: () => finishMidtrans('Pembayaran menunggu konfirmasi — cek instruksi di email/inbox kamu ⏳', true),
+        onError: () => { toast('Pembayaran gagal/dibatalkan.', 'err'); setPaying(false) },
+        onClose: () => { setPaying(false); toast('Jendela pembayaran ditutup — pesanan tetap tersimpan & menunggu pembayaran.', 'warn') },
+      })
+    } catch (e) {
+      toast(`Terjadi kesalahan: ${e.message || e}`, 'err')
+      setPaying(false)
+    }
+  }
+
+  async function finishMidtrans(msg, pending = false) {
+    // Konfirmasi pembayaran divalidasi LANGSUNG ke server Midtrans (bukan browser)
+    const v = await verifyMidtransPayment(midtransOrder)
+    if (!pending && v.ok && v.paid) markOrderPaid(midtransOrder, 'midtrans')
+    setPaying(false)
+    setMidtransOrder(null)
+    cart.clear()
+    toast(msg, pending ? 'warn' : 'ok')
+    navigate('/my-orders')
   }
 
   function simulatePay() {
@@ -215,19 +266,22 @@ export default function Checkout() {
         </div>
       </div>
 
-      {/* Simulasi Midtrans Snap */}
+      {/* Midtrans Snap — pembayaran nyata (token dari server, verifikasi ke server Midtrans) */}
       <Modal open={!!midtransOrder} onClose={() => setMidtransOrder(null)} title="Midtrans Snap — Pilih Metode Pembayaran">
         <div className="alert alert-info mb-3">
-          Mode sandbox: integrasi nyata memakai token Snap dari backend & konfirmasi via webhook.
+          Klik tombol di bawah untuk membuka jendela pembayaran Midtrans yang aman. Tersedia QRIS (GoPay/OVO/Dana), Virtual Account, dan Kartu Kredit/Debit.
         </div>
         <div className="stack">
           {['QRIS — GoPay/OVO/Dana', 'Virtual Account BCA', 'Virtual Account Mandiri', 'Kartu Kredit/Debit'].map((m) => (
             <div key={m} className="pos-item"><span className="meta"><b>{m}</b></span></div>
           ))}
         </div>
-        <button className="btn btn-primary w-full mt-3" onClick={simulatePay} disabled={paying}>
-          {paying ? 'Memproses pembayaran…' : `Bayar ${rupiah(total)}`}
+        <button className="btn btn-primary w-full mt-3" onClick={payWithMidtrans} disabled={paying}>
+          {paying ? 'Menyiapkan pembayaran…' : `💳 Bayar ${rupiah(total)} Sekarang`}
         </button>
+        <p className="text-muted" style={{ fontSize: 12, textAlign: 'center', margin: '10px 0 0' }}>
+          Konfirmasi pembayaran diverifikasi langsung ke server Midtrans — bukan sekadar klik di browser.
+        </p>
       </Modal>
     </div>
   )
