@@ -7,7 +7,7 @@
 //   berurutan (dengan retry saat koneksi putus), lalu perubahan
 //   dari perangkat lain ditarik lewat polling berkala.
 // ============================================================
-import { seed, SMTP_DEFAULT } from './seed'
+import { seed, SMTP_DEFAULT, BANNERS_DEFAULT } from './seed'
 import { uid } from '../utils/format'
 
 const KEY = 'nandin_db_v1'
@@ -94,10 +94,11 @@ function read() {
     persistLocal()
     return cache
   }
-  // Migrasi ringan untuk data lama (mis. penambahan pengaturan SMTP & log email)
+  // Migrasi ringan untuk data lama (mis. penambahan banner slider, SMTP & log email)
   let migrated = false
   if (!cache.settings.smtp) { cache.settings.smtp = SMTP_DEFAULT; migrated = true }
   if (!cache.emails) { cache.emails = []; migrated = true }
+  if (!Array.isArray(cache.settings.banners)) { cache.settings.banners = BANNERS_DEFAULT; migrated = true }
   if (migrated) persistLocal()
   return cache
 }
@@ -267,6 +268,12 @@ function hydrate(boot) {
     if (Array.isArray(fresh[k])) fresh[k] = (boot.data && boot.data[k]) || []
   })
   fresh.settings = boot.settings || fresh.settings
+  // Server masih memakai pengaturan lama (sebelum fitur banner) → pertahankan
+  // banner lokal agar tidak hilang diam-diam setelah sinkronisasi.
+  if (!Array.isArray(fresh.settings.banners)) {
+    const localBanners = read().settings?.banners
+    fresh.settings.banners = Array.isArray(localBanners) ? localBanners : []
+  }
   fresh.seq = read().seq || { order: 200 }
   fresh.orders.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
   cache = fresh

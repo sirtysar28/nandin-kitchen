@@ -129,6 +129,29 @@ const customers = [
   { id: 'c2', name: 'Budi Santoso', email: 'budi@example.com', phone: '0813-2222-3333', createdAt: daysAgoISO(15) },
 ]
 
+// Banner slider homepage — MAKSIMAL 6 (kelebihan tidak ditampilkan di slider).
+// Dikelola dari Dashboard → Pengaturan → Banner Slider.
+const banners = [
+  {
+    id: 'ban-1', active: true, emoji: '🛵', image: '',
+    title: 'Gratis Ongkir 🎉',
+    subtitle: `Belanja minimal ${'Rp300.000'} langsung diantar tanpa ongkir — berlaku setiap hari!`,
+    link: '/products', linkLabel: 'Belanja Sekarang',
+  },
+  {
+    id: 'ban-2', active: true, emoji: '🍰', image: '',
+    title: 'Pre-Order Lapis Legit 18 Lapis',
+    subtitle: 'Dipanggang satu per satu dengan butter premium — favorit hari raya keluarga.',
+    link: '/products?cat=cake', linkLabel: 'Pesan Sekarang',
+  },
+  {
+    id: 'ban-3', active: true, emoji: '🎁', image: '',
+    title: 'Hampers Spesial Momen Berharga',
+    subtitle: 'Parsel & hampers eksklusif dengan kemasan premium, siap kirim ke seluruh kota.',
+    link: '/products?cat=hampers', linkLabel: 'Lihat Hampers',
+  },
+]
+
 const settings = {
   storeName: 'Nandin Kitchen',
   tagline: 'Toko Kue Premium',
@@ -143,6 +166,7 @@ const settings = {
   logo: '/logo-nandin.png',
   favicon: '/favicon.png',
   waNumber: '6281200000001',
+  banners,
   midtrans: { enabled: true, merchantId: 'G000123456', clientKey: 'SB-Mid-client-DEMO', serverKey: 'SB-Mid-server-DEMO', env: 'sandbox' },
   qris: '',
   smtp: {
@@ -264,3 +288,6 @@ export function seed() {
 
 // Default konfigurasi SMTP (dipakai juga untuk migrasi data lama)
 export const SMTP_DEFAULT = settings.smtp
+
+// Default banner slider (dipakai juga untuk migrasi data lama)
+export const BANNERS_DEFAULT = banners

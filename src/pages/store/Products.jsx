@@ -1,10 +1,13 @@
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useData } from '../../context/DataContext'
+import { useSettings } from '../../context/SettingsContext'
 import ProductCard from '../../components/products/ProductCard'
+import BannerSlider from '../../components/common/BannerSlider'
 
 export default function Products() {
   const { db } = useData()
+  const settings = useSettings()
   const [params, setParams] = useSearchParams()
   const [q, setQ] = useState('')
   const cat = params.get('cat') || 'all'
@@ -33,6 +36,11 @@ export default function Products() {
           <h1>Katalog Kue 🧁</h1>
           <p className="text-muted" style={{ margin: 0 }}>{products.length} produk tersedia</p>
         </div>
+      </div>
+
+      {/* Promosi — banner slider (sama seperti di Beranda) */}
+      <div className="mb-3">
+        <BannerSlider banners={settings.banners} />
       </div>
 
       <div className="card mb-3 row-between">

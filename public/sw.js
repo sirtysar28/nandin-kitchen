@@ -1,5 +1,5 @@
 /* Nandin Kitchen — Service Worker (PWA) */
-const CACHE = 'nandin-v5'
+const CACHE = 'nandin-v7'
 const ASSETS = [
   '/',
   '/index.html',

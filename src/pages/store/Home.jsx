@@ -1,10 +1,13 @@
 import { Link } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 import { useSettings } from '../../context/SettingsContext'
 import { useData } from '../../context/DataContext'
 import ProductCard from '../../components/products/ProductCard'
+import BannerSlider from '../../components/common/BannerSlider'
 import { rupiah } from '../../utils/format'
 
 export default function Home() {
+  const { user } = useAuth()
   const settings = useSettings()
   const { db } = useData()
   const products = db.list('products').filter((p) => p.active)
@@ -13,7 +16,7 @@ export default function Home() {
   const catOf = (id) => categories.find((c) => c.id === id)
 
   return (
-    <div className="stack-lg" style={{ display: 'grid', gap: 44 }}>
+    <div className="stack-lg">
       {/* Hero */}
       <section className="hero">
         <div>
@@ -38,6 +41,28 @@ export default function Home() {
           <b>⏰ Pre-order</b> tersedia untuk lapis legit & hampers
         </div>
         <Link to="/products" className="btn btn-primary">Lihat Katalog</Link>
+      </section>
+
+      {/* Menu cepat ikon (khusus mobile & setelah login) — pengganti menu hamburger,
+          tampil di atas slider Promosi */}
+      {user && (
+        <div className="quick-nav">
+          <Link to="/" className="quick-item"><span className="quick-ico">🏠</span>Beranda</Link>
+          <Link to="/products" className="quick-item"><span className="quick-ico">🧁</span>Katalog</Link>
+          <Link to="/my-orders" className="quick-item"><span className="quick-ico">📦</span>Pesanan</Link>
+          <Link to="/about" className="quick-item"><span className="quick-ico">ℹ️</span>Tentang</Link>
+        </div>
+      )}
+
+      {/* Promosi — banner slider (dikelola dari Dashboard → Pengaturan → Banner Slider) */}
+      <section>
+        <div className="section-head">
+          <div>
+            <h2>Promosi</h2>
+            <p className="text-muted" style={{ margin: 0 }}>Penawaran spesial dari Nandin Kitchen</p>
+          </div>
+        </div>
+        <BannerSlider banners={settings.banners} />
       </section>
 
       {/* Kategori */}

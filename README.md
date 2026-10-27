@@ -28,7 +28,7 @@ Pelanggan dapat **mendaftar sendiri** lewat tombol *Masuk/Daftar* di sisi kanan 
 ## Fitur Utama
 
 ### Website pelanggan (storefront)
-- Beranda: hero banner, promo, kategori, produk unggulan.
+- Beranda: **slider banner promo** (maks. 6 slide, dikelola dari dashboard — desktop tampil 2 sekaligus, mobile 1 per satu bergeser otomatis), hero banner, promo, kategori, produk unggulan.
 - Katalog: pencarian, filter kategori (cake, brownies, cookies, pastry, hampers), sortir harga.
 - Detail produk: ukuran & varian dengan penyesuaian harga, jumlah, catatan pesanan.
 - Keranjang tersimpan di perangkat (localStorage).
@@ -50,7 +50,7 @@ Pelanggan dapat **mendaftar sendiri** lewat tombol *Masuk/Daftar* di sisi kanan 
 6. **Pembelian & Biaya** — pembelian supplier (otomatis stok masuk) + pengeluaran operasional.
 7. **Laporan** — periode (hari/7 hari/30 hari/kustom), omzet, diskon, HPP & laba kotor, laba bersih,
    metode pembayaran, produk terlaris, **ekspor CSV**.
-8. **Pengaturan** — profil toko, **logo & favicon custom (upload/URL + kembali ke default)**,
+8. **Pengaturan** — profil toko, **logo & favicon custom (upload/URL + kembali ke default)**, **banner slider beranda** (maks. 6: upload/URL gambar atau emoji, judul, tombol link, urutan, aktif/nonaktif),
    nomor WhatsApp admin, konfigurasi **Midtrans** (sandbox/production, merchant & key — server key tersembunyi),
    konfigurasi **SMTP** (host/port/enkripsi/username/password, preset penyedia, email tes, notifikasi otomatis
    pesanan baru/pembayaran/selesai + outbox), ongkir/pajak/batas stok, akun admin & kasir, reset data.

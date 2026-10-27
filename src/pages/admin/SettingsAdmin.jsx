@@ -5,13 +5,15 @@ import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../components/common/Toast'
 import PasswordInput from '../../components/common/PasswordInput'
 import { db, sendEmail, emailTemplate, testMidtrans } from '../../services/db'
-import { fmtDateTime } from '../../utils/format'
+import { fmtDateTime, uid } from '../../utils/format'
 import { waLink, waTarget } from '../../utils/wa'
 import Modal from '../../components/common/Modal'
+import { MAX_BANNERS } from '../../components/common/BannerSlider'
 
 const TABS = [
   ['profil', '🏪 Profil Toko'],
   ['branding', '🎨 Logo & Favicon'],
+  ['banner', '🖼️ Banner Slider'],
   ['whatsapp', '💬 WhatsApp'],
   ['midtrans', '💳 Midtrans'],
   ['smtp', '📧 SMTP (Email)'],
@@ -57,6 +59,53 @@ export default function SettingsAdmin() {
   const [accModal, setAccModal] = useState(false)
   const [acc, setAcc] = useState({ name: '', email: '', password: '', role: 'kasir' })
   const staff = store.db.list('users').filter((u) => u.role !== 'customer')
+
+  // Banner slider homepage — dibatasi MAX_BANNERS (6) slide;
+  // setiap perubahan langsung disimpan & tersinkron ke semua perangkat.
+  const banners = Array.isArray(form.banners) ? form.banners : []
+  const [banModal, setBanModal] = useState(false)
+  const [ban, setBan] = useState(null)
+  const banImgRef = useRef()
+  const setB = (k, v) => setBan((b) => ({ ...b, [k]: v }))
+
+  function setBanners(next) {
+    next = next.slice(0, MAX_BANNERS)
+    setForm((f) => ({ ...f, banners: next }))
+    store.db.setSettings({ banners: next })
+  }
+
+  function openAddBanner() {
+    if (banners.length >= MAX_BANNERS) return toast(`Maksimal ${MAX_BANNERS} banner — hapus/nonaktifkan salah satu dulu.`, 'err')
+    setBan({ id: '', title: '', subtitle: '', emoji: '🎂', image: '', link: '', linkLabel: '', active: true })
+    setBanModal(true)
+  }
+
+  function saveBanner() {
+    if (!ban.title.trim()) return toast('Judul banner wajib diisi.', 'err')
+    const item = { ...ban, id: ban.id || uid(), title: ban.title.trim() }
+    const next = ban.id ? banners.map((x) => (x.id === ban.id ? item : x)) : [...banners, item]
+    setBanners(next)
+    setBanModal(false)
+    toast(ban.id ? 'Banner diperbarui ✅' : 'Banner ditambahkan ✅')
+  }
+
+  function moveBanner(i, dir) {
+    const j = i + dir
+    if (j < 0 || j >= banners.length) return
+    const next = [...banners]
+    ;[next[i], next[j]] = [next[j], next[i]]
+    setBanners(next)
+  }
+
+  function toggleBanner(id) {
+    setBanners(banners.map((b) => (b.id === id ? { ...b, active: !b.active } : b)))
+  }
+
+  function delBanner(b) {
+    if (!confirm(`Hapus banner "${b.title}"?`)) return
+    setBanners(banners.filter((x) => x.id !== b.id))
+    toast('Banner dihapus')
+  }
 
   // SMTP: kirim email tes ASLI via server (PHP → SMTP)
   const [testTo, setTestTo] = useState('')
@@ -164,6 +213,69 @@ export default function SettingsAdmin() {
                 <input className="input" style={{ maxWidth: 340 }} placeholder="atau URL favicon…" value={form.favicon?.startsWith('data:') ? '(file terunggah)' : form.favicon} onChange={(e) => setF('favicon', e.target.value)} />
               </div>
             </div>
+          </>
+        )}
+
+        {tab === 'banner' && (
+          <>
+            <div className="row-between">
+              <div>
+                <h3>🖼️ Banner Slider Homepage</h3>
+                <p className="text-muted" style={{ margin: 0, maxWidth: '62ch' }}>
+                  Tampil berurutan di beranda: <b>desktop 2 banner</b> sekali tampil, <b>mobile 1 banner</b> bergeser otomatis tiap 5 detik. Batas <b>{MAX_BANNERS} banner</b> — banner ke-7 dan seterusnya tidak ditampilkan.
+                </p>
+              </div>
+              <button className="btn btn-primary" onClick={openAddBanner} disabled={banners.length >= MAX_BANNERS}>
+                + Tambah Banner
+              </button>
+            </div>
+            <div className="row mt-2" style={{ gap: 8 }}>
+              <span className="badge badge-caramel">{banners.filter((b) => b.active).length} aktif tampil</span>
+              <span className="badge">{banners.length}/{MAX_BANNERS} slot terpakai</span>
+            </div>
+            {banners.length === 0 ? (
+              <div className="alert alert-info mt-2">
+                Belum ada banner — tambahkan promo, produk unggulan, atau info spesial untuk menghiasi beranda.
+              </div>
+            ) : (
+              <div className="banner-admin-grid mt-2">
+                {banners.map((b, i) => (
+                  <div key={b.id} className="card" style={{ padding: 12, display: 'grid', gap: 8 }}>
+                    {b.image ? (
+                      <img className="banner-thumb" src={b.image} alt={b.title} />
+                    ) : (
+                      <div className="banner-thumb-ph"><span>{b.emoji || '🎂'}</span></div>
+                    )}
+                    <div>
+                      <b>{b.title || '(tanpa judul)'}</b>
+                      {b.subtitle && (
+                        <div className="text-muted" style={{ fontSize: 12.5 }}>
+                          {b.subtitle}
+                        </div>
+                      )}
+                      {b.link && (
+                        <div className="text-muted" style={{ fontSize: 11.5 }}>🔗 {b.link}</div>
+                      )}
+                    </div>
+                    <div className="row-between">
+                      <span className={`badge ${b.active ? 'badge-ok' : 'badge-err'}`}>
+                        {b.active ? '✓ Aktif' : 'Nonaktif'}
+                      </span>
+                      <span className="text-muted" style={{ fontSize: 12, fontWeight: 700 }}>#{i + 1}</span>
+                    </div>
+                    <div className="row" style={{ gap: 4 }}>
+                      <button className="btn btn-ghost btn-sm" onClick={() => moveBanner(i, -1)} disabled={i === 0} title="Naik">↑</button>
+                      <button className="btn btn-ghost btn-sm" onClick={() => moveBanner(i, 1)} disabled={i === banners.length - 1} title="Turun">↓</button>
+                      <button className="btn btn-outline btn-sm" onClick={() => toggleBanner(b.id)}>
+                        {b.active ? 'Nonaktifkan' : 'Aktifkan'}
+                      </button>
+                      <button className="btn btn-ghost btn-sm" onClick={() => { setBan({ ...b }); setBanModal(true) }} title="Edit">✏️</button>
+                      <button className="btn btn-ghost btn-sm" style={{ color: 'var(--err)' }} onClick={() => delBanner(b)} title="Hapus">🗑️</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </>
         )}
 
@@ -401,7 +513,7 @@ export default function SettingsAdmin() {
           </>
         )}
 
-        {tab !== 'akun' && (
+        {tab !== 'akun' && tab !== 'banner' && (
           <div className="row mt-3" style={{ justifyContent: 'end' }}>
             <button className="btn btn-primary" onClick={save}>💾 Simpan Pengaturan</button>
           </div>
@@ -424,6 +536,46 @@ export default function SettingsAdmin() {
           </div>
           <button className="btn btn-primary w-full" onClick={addAccount}>Tambah Akun</button>
         </div>
+      </Modal>
+
+      <Modal open={banModal} onClose={() => setBanModal(false)} title={ban?.id ? 'Edit Banner' : 'Tambah Banner'}>
+        {ban && (
+          <div className="stack">
+            <div className="upload-box">
+              <b>Gambar Banner</b>
+              {ban.image ? (
+                <img className="banner-thumb" src={ban.image} alt="Preview banner" />
+              ) : (
+                <div className="banner-thumb-ph"><span>{ban.emoji || '🎂'}</span></div>
+              )}
+              <div className="row" style={{ justifyContent: 'center' }}>
+                <button className="btn btn-outline btn-sm" onClick={() => banImgRef.current?.click()}>📤 Upload Gambar</button>
+                {ban.image && <button className="btn btn-ghost btn-sm" onClick={() => setB('image', '')}>🗑 Hapus</button>}
+              </div>
+              <input ref={banImgRef} hidden type="file" accept="image/*" onChange={(e) => e.target.files[0] && readFile(e.target.files[0], (d) => setB('image', d))} />
+              <input className="input" style={{ maxWidth: 340 }} placeholder="atau URL gambar…" value={ban.image?.startsWith('data:') ? '(file terunggah)' : ban.image} onChange={(e) => setB('image', e.target.value)} />
+              <span className="text-muted" style={{ fontSize: 12.5 }}>
+                Disarankan landscape ±1200×500px. Tanpa gambar, banner tampil sebagai emoji di atas gradasi tema cokelat.
+              </span>
+            </div>
+            <div><label className="label">Judul</label><input className="input" value={ban.title} onChange={(e) => setB('title', e.target.value)} placeholder="Promo Ulang Tahun 🎂" /></div>
+            <div><label className="label">Sub Judul</label><input className="input" value={ban.subtitle} onChange={(e) => setB('subtitle', e.target.value)} placeholder="Diskon 20% semua cake akhir pekan" /></div>
+            <div className="grid-2">
+              <div><label className="label">Emoji (tanpa gambar)</label><input className="input" value={ban.emoji || ''} onChange={(e) => setB('emoji', e.target.value)} placeholder="🎂" /></div>
+              <div><label className="label">Label Tombol</label><input className="input" value={ban.linkLabel || ''} onChange={(e) => setB('linkLabel', e.target.value)} placeholder="Belanja Sekarang" /></div>
+            </div>
+            <div>
+              <label className="label">Link Tujuan</label>
+              <input className="input" value={ban.link || ''} onChange={(e) => setB('link', e.target.value)} placeholder="mis. /products?cat=cake atau https://…" />
+              <span className="text-muted" style={{ fontSize: 12 }}>Halaman dalam aplikasi atau link eksternal (terbuka di tab baru).</span>
+            </div>
+            <label className="row" style={{ gap: 8, fontWeight: 700, fontSize: 14 }}>
+              <input type="checkbox" checked={!!ban.active} onChange={(e) => setB('active', e.target.checked)} />
+              Tampilkan banner ini di homepage
+            </label>
+            <button className="btn btn-primary w-full" onClick={saveBanner}>💾 Simpan Banner</button>
+          </div>
+        )}
       </Modal>
     </div>
   )

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useSettings } from '../context/SettingsContext'
 import { useAuth } from '../context/AuthContext'
@@ -6,6 +6,7 @@ import { useCart } from '../context/CartContext'
 import { waLink, waTarget } from '../utils/wa'
 import AuthModal from '../components/common/AuthModal'
 import BottomNav from '../components/common/BottomNav'
+import NotificationBell from '../components/common/NotificationBell'
 import ScanPayModal from '../components/common/ScanPayModal'
 
 export default function StoreLayout() {
@@ -18,6 +19,7 @@ export default function StoreLayout() {
   const [userMenu, setUserMenu] = useState(false)
   const [installEvt, setInstallEvt] = useState(null)
   const loc = useLocation()
+  const headerRef = useRef(null)
 
   useEffect(() => {
     const h = (e) => {
@@ -33,6 +35,19 @@ export default function StoreLayout() {
     setUserMenu(false)
   }, [loc.pathname])
 
+  // Tutup menu burger / dropdown user saat tap di luar header (UX mobile)
+  useEffect(() => {
+    if (!menuOpen && !userMenu) return
+    const h = (e) => {
+      if (headerRef.current && !headerRef.current.contains(e.target)) {
+        setMenuOpen(false)
+        setUserMenu(false)
+      }
+    }
+    document.addEventListener('pointerdown', h)
+    return () => document.removeEventListener('pointerdown', h)
+  }, [menuOpen, userMenu])
+
   const links = [
     { to: '/', label: 'Beranda' },
     { to: '/products', label: 'Katalog' },
@@ -41,10 +56,10 @@ export default function StoreLayout() {
   if (user) links.splice(2, 0, { to: '/my-orders', label: 'Pesanan Saya' })
 
   return (
-    <div className="store-shell">
-      <header className="navbar">
+    <div className={`store-shell ${user ? 'has-bottom-nav' : ''}`}>
+      <header className="navbar" ref={headerRef}>
         <div className="container nav-inner">
-          <button className="icon-btn nav-burger" onClick={() => setMenuOpen((v) => !v)} aria-label="Menu">☰</button>
+          <button className="icon-btn nav-burger" onClick={() => setMenuOpen((v) => !v)} aria-label="Menu" aria-expanded={menuOpen}>☰</button>
           <Link to="/" className="brand">
             <img src={settings.logo || '/logo-nandin.png'} alt={settings.storeName} className="brand-logo" />
             <span className="brand-name">{settings.storeName}</span>
@@ -58,8 +73,9 @@ export default function StoreLayout() {
             ))}
           </nav>
 
-          {/* Sisi kanan: keranjang + login/akun */}
+          {/* Sisi kanan: notifikasi (setelah login) + keranjang + login/akun */}
           <div className="nav-right">
+            {user && <NotificationBell />}
             <Link to="/cart" className="icon-btn cart-btn" aria-label="Keranjang">
               🛒
               {cart.count > 0 && <span className="cart-badge">{cart.count}</span>}
@@ -162,16 +178,18 @@ export default function StoreLayout() {
         rel="noopener noreferrer"
         aria-label="Chat WhatsApp"
       >
-        💬
+        <span className="wa-ico">💬</span>
       </a>
 
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
 
-      {/* Navigasi bawah 5 ikon (khusus mobile) — tombol tengah: scan pembayaran */}
-      <BottomNav
-        onOpenAuth={() => setAuthOpen(true)}
-        onOpenScan={() => setScanOpen(true)}
-      />
+      {/* Navigasi bawah 5 ikon — HANYA mobile & HANYA setelah login */}
+      {user && (
+        <BottomNav
+          onOpenAuth={() => setAuthOpen(true)}
+          onOpenScan={() => setScanOpen(true)}
+        />
+      )}
       <ScanPayModal
         open={scanOpen}
         onClose={() => setScanOpen(false)}
